@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jonchki-artifact version="1.0">
+	<info group="org.muhkuh.lua"
+	      module="app_bridge_iolwm"
+	      artifact="app_bridge_iolwm"
+	      version="${PROJECT_VERSION}"
+	      vcs-id="${PROJECT_VERSION_VCS}"
+	      extension="zip">
+		<license name="GPL-2.0"/>
+		<author name="Muhkuh Team" url="https://github.com/muhkuh-sys" />
+		<description>
+			Access an IOLWM device connected to the UART pins of a netX.
+		</description>
+	</info>
+	<dependencies>
+		<dependency group="org.muhkuh.lua"   module="netx90_app_bridge" artifact="netx90_app_bridge" version="1.1"/>
+	</dependencies>
+</jonchki-artifact>

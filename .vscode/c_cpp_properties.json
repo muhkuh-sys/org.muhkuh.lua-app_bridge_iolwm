@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "name": "NETX90",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "compileCommands": "${workspaceFolder}/module/targets/compile_commands.json"
+        }
+    ],
+    "version": 4
+  }
+  
