@@ -34,6 +34,7 @@ function AppBridgeModuleIolwm:_init(tAppBridge, tLog)
   self.ulModuleBufferArea = 0x000BC000
 
   self.IOLWM_COMMAND_WaitForPowerup = ${IOLWM_COMMAND_WaitForPowerup}
+  self.IOLWM_COMMAND_ActivateSmiMode = ${IOLWM_COMMAND_ActivateSmiMode}
 end
 
 
@@ -65,5 +66,20 @@ function AppBridgeModuleIolwm:initialize()
     self.pl.pretty.dump(tStackReadyIndication)
   end
 end
+
+
+function AppBridgeModuleIolwm:activateSmiMode()
+  local tAppBridge = self.tAppBridge
+  local tLog = self.tLog
+
+  local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_ActivateSmiMode)
+  if ulValue~=0 then
+    tLog.error('Failed to activate SMI mode: 0x%08x', ulValue)
+    error('Failed to activate SMI mode.')
+  else
+    tLog.info('SMI mode activated.')
+  end
+end
+
 
 return AppBridgeModuleIolwm

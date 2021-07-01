@@ -39,6 +39,13 @@ typedef union PTR_UNION
 } PTR_T;
 
 
+/*-------------------------------------------------------------------------*/
+
+/* NOTE: Use "pragma pack" instead of "attribute packed" as the latter does not work on MinGW.
+ *       See here for details: https://sourceforge.net/p/mingw-w64/bugs/588/
+ */
+#pragma pack(push, 1)
+
 typedef struct IOLWM_EHCI_EVENT_HEADER_STRUCT
 {
 	unsigned char  ucPacketType;
@@ -48,6 +55,22 @@ typedef struct IOLWM_EHCI_EVENT_HEADER_STRUCT
 	unsigned char  ucReserved;
 } IOLWM_EHCI_EVENT_HEADER_T;
 
+
+typedef struct IOLWM_EHCI_COMMAND_HEADER_STRUCT
+{
+	unsigned char  ucPacketType;
+	unsigned short usHandle;
+	unsigned short usTotalLength;
+	unsigned short usOpcode;
+	unsigned short usReserved;
+} IOLWM_EHCI_COMMAND_HEADER_T;
+
+
+typedef struct IOLWM_EHCI_COMMAND_PACKET_STRUCT
+{
+	IOLWM_EHCI_COMMAND_HEADER_T tHeader;
+	unsigned char aucPayload[255-sizeof(IOLWM_EHCI_COMMAND_HEADER_T)];
+} IOLWM_EHCI_COMMAND_PACKET_STRUCT;
 
 typedef struct IOLWM_PARAM_VS_STACKREADY_IND_STRUCT
 {
@@ -62,6 +85,11 @@ typedef struct IOLWM_PARAM_VS_STACKREADY_IND_STRUCT
 } IOLWM_PARAM_VS_STACKREADY_IND_T;
 
 
+#pragma pack(pop)
+
+/*-------------------------------------------------------------------------*/
+
+
 #define IOLWM_RADIO_TEST_CMD_CON_STOP       0
 #define IOLWM_RADIO_TEST_CMD_CON_TX         1
 #define IOLWM_RADIO_TEST_CMD_CON_RX         2
@@ -74,6 +102,56 @@ typedef struct IOLWM_PARAM_VS_STACKREADY_IND_STRUCT
 #define IOLWM_VS_STACK_REVISION_CNF_OPCODE  0x81                                                                                                                                              
 #define IOLWM_VS_RF_REVISION_CNF_OPCODE     0x82                                                                                                                                              
 
+#define IOLWM_SMI_CM_CONFIG_REQ_OPCODE                      0xFE10
+#define IOLWM_SMI_CM_MASTER_IDENT_REQ_OPCODE                0xFE01
+#define IOLWM_SMI_CM_MASTER_CONFIG_REQ_OPCODE               0xFE02
+#define IOLWM_SMI_CM_RDB_MASTER_CONFIG_REQ_OPCODE           0xFE03
+#define IOLWM_SMI_CM_TRACK_CONFIG_REQ_OPCODE                0xFE04
+#define IOLWM_SMI_CM_RDB_TRACK_CONFIG_REQ_OPCODE            0xFE05
+#define IOLWM_SMI_CM_TRACK_STATUS_REQ_OPCODE                0xFE06
+#define IOLWM_SMI_CM_PORT_CONFIG_REQ_OPCODE                 0xFE07
+#define IOLWM_SMI_CM_RDB_PORT_CONFIG_REQ_OPCODE             0xFE08
+#define IOLWM_SMI_CM_PORT_STATUS_REQ_OPCODE                 0xFE09
+#define IOLWM_SMI_CM_SCAN_REQ_OPCODE                        0xFE0A
+#define IOLWM_SMI_CM_SCAN_STATUS_REQ_OPCODE                 0xFE0B
+#define IOLWM_SMI_DS_READ_REQ_OPCODE                        0xFE20
+#define IOLWM_SMI_DS_WRITE_REQ_OPCODE                       0xFE21
+#define IOLWM_SMI_ODE_DEVICE_WRITE_REQ_OPCODE               0xFE30
+#define IOLWM_SMI_ODE_DEVICE_READ_REQ_OPCODE                0xFE31
+#define IOLWM_SMI_PDE_PDIN_REQ_OPCODE                       0xFE40
+#define IOLWM_SMI_PDE_PDOUT_REQ_OPCODE                      0xFE41
+#define IOLWM_SMI_PDE_CONFIG_PD_REQ_OPCODE                  0xFE42
+#define IOLWM_SMI_PDE_RDB_CONFIG_PD_REQ_OPCODE              0xFE43
+#define IOLWM_SMI_PORT_CMD_REQ_OPCODE                       0xFE60
+#define IOLWM_SMI_VS_WRITE_REQ_OPCODE                       0xFE81
+#define IOLWM_SMI_VS_READ_REQ_OPCODE                        0xFE82
+
+#define IOLWM_SMI_CM_CONFIG_CNF_OPCODE                      0x10
+#define IOLWM_SMI_CM_MASTER_IDENT_CNF_OPCODE                0x01
+#define IOLWM_SMI_CM_MASTER_CONFIG_CNF_OPCODE               0x02
+#define IOLWM_SMI_CM_RDB_MASTER_CONFIG_CNF_OPCODE           0x03
+#define IOLWM_SMI_CM_TRACK_CONFIG_CNF_OPCODE                0x04
+#define IOLWM_SMI_CM_RDB_TRACK_CONFIG_CNF_OPCODE            0x05
+#define IOLWM_SMI_CM_TRACK_STATUS_CNF_OPCODE                0x06
+#define IOLWM_SMI_CM_PORT_CONFIG_CNF_OPCODE                 0x07
+#define IOLWM_SMI_CM_RDB_PORT_CONFIG_CNF_OPCODE             0x08
+#define IOLWM_SMI_CM_PORT_STATUS_CNF_OPCODE                 0x09
+#define IOLWM_SMI_CM_SCAN_CNF_OPCODE                        0x0A
+#define IOLWM_SMI_CM_SCAN_STATUS_CNF_OPCODE                 0x0B
+#define IOLWM_SMI_CM_PORT_EVENT_IND_OPCODE                  0x0C
+#define IOLWM_SMI_DS_READ_CNF_OPCODE                        0x20
+#define IOLWM_SMI_DS_WRITE_CNF_OPCODE                       0x21
+#define IOLWM_SMI_ODE_DEVICE_WRITE_CNF_OPCODE               0x30
+#define IOLWM_SMI_ODE_DEVICE_READ_CNF_OPCODE                0x31
+#define IOLWM_SMI_PDE_PDIN_CNF_OPCODE                       0x40
+#define IOLWM_SMI_PDE_PDOUT_CNF_OPCODE                      0x41
+#define IOLWM_SMI_PDE_CONFIG_PD_CNF_OPCODE                  0x42
+#define IOLWM_SMI_PDE_RDB_CONFIG_PD_CNF_OPCODE              0x43
+#define IOLWM_SMI_DU_DEVICE_EVENT_IND_OPCODE                0x50
+#define IOLWM_SMI_PORT_CMD_CNF_OPCODE                       0x60
+#define IOLWM_SMI_VS_WRITE_CNF_OPCODE                       0x81
+#define IOLWM_SMI_VS_READ_CNF_OPCODE                        0x82
+#define IOLWM_SMI_VS_IND_OPCODE                             0x83
 
 /*-------------------------------------------------------------------------*/
 
@@ -173,20 +251,27 @@ static void uart_clean_receive_fifo(void)
 
 
 
-static void uart_send(unsigned char ucData)
+static void uart_send(const void *pvData, unsigned int sizData)
 {
 	HOSTDEF(ptUartAppArea);
 	unsigned long ulValue;
+	const unsigned char *pucCnt;
+	const unsigned char *pucEnd;
 
 
-	/* Wait until there is space in the FIFO. */
-	do
+	pucCnt = (const unsigned char*)pvData;
+	pucEnd = pucCnt + sizData;
+	while( pucCnt<pucEnd )
 	{
-		ulValue  = ptUartAppArea->ulUartfr;
-		ulValue &= HOSTMSK(uartfr_TXFF);
-	} while( ulValue!=0 );
+		/* Wait until there is space in the FIFO. */
+		do
+		{
+			ulValue  = ptUartAppArea->ulUartfr;
+			ulValue &= HOSTMSK(uartfr_TXFF);
+		} while( ulValue!=0 );
 
-	ptUartAppArea->ulUartdr = ucData;
+		ptUartAppArea->ulUartdr = *(pucCnt++);
+	}
 }
 
 
@@ -311,6 +396,7 @@ static unsigned long module_waitforpowerup(unsigned char *pucBuffer)
 	unsigned long ulSize;
 
 
+	ulSize = 0;
 	ulResult = event_wait(pucBuffer, &ulSize, IOLW_EHCI_API_EVENT_CODE_VALUE, IOLWM_VS_STACK_READY_IND_OPCODE, 10);
 	if( ulResult==IOLWM_RESULT_Ok )
 	{
@@ -321,6 +407,63 @@ static unsigned long module_waitforpowerup(unsigned char *pucBuffer)
 		else
 		{
 			ulResult = IOLWM_RESULT_InvalidPacketSize;
+		}
+	}
+
+	return ulResult;
+}
+
+
+
+static void command_create(IOLWM_EHCI_COMMAND_PACKET_STRUCT *ptPacket, unsigned short usOpcode, unsigned short sizPayload)
+{
+	ptPacket->tHeader.ucPacketType = 0x02;
+	ptPacket->tHeader.usHandle = 0x0001;
+	ptPacket->tHeader.usTotalLength = (unsigned short)(4U + sizPayload);
+	ptPacket->tHeader.usOpcode = usOpcode;
+	ptPacket->tHeader.usReserved = 0x0000;
+}
+
+
+
+static unsigned long module_activateSmiMode(void)
+{
+	unsigned int uiRetries;
+	unsigned long ulResult;
+	unsigned long ulSize;
+	unsigned long ulValue;
+	IOLWM_EHCI_COMMAND_PACKET_STRUCT tPacket;
+	unsigned char aucBuffer[256];
+
+
+	command_create(&tPacket, IOLWM_SMI_CM_CONFIG_REQ_OPCODE, 2);
+	tPacket.aucPayload[0] = 0x01;  // ClientID
+	tPacket.aucPayload[1] = 0x01;  // SMI_Mode = ON
+
+//	uiRetries = 10;
+//	do
+//	{
+		uart_send(&tPacket, sizeof(IOLWM_EHCI_COMMAND_HEADER_T)+2);
+
+		ulSize = 0;
+		ulResult = event_wait(aucBuffer, &ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_CM_CONFIG_CNF_OPCODE, 10);
+//		if( ulResult!=IOLWM_RESULT_Ok )
+//		{
+//			--uiRetries;
+//			if( uiRetries==0 )
+//			{
+//				break;
+//			}
+//		}
+//	} while( ulResult!=IOLWM_RESULT_Ok );
+
+	if( ulResult==IOLWM_RESULT_Ok )
+	{
+		ulValue  = (unsigned long)(aucBuffer[1]);
+		ulValue |= (unsigned long)(aucBuffer[2]<<8U);
+		if( ulValue!=0 )
+		{
+			ulResult = IOLWM_RESULT_ModuleError;
 		}
 	}
 
@@ -350,6 +493,12 @@ unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, uns
 
 		uAdr.ul = ulParameter1;
 		ulResult = module_waitforpowerup(uAdr.puc);
+		break;
+
+	case IOLWM_COMMAND_ActivateSmiMode:
+		/* Activate SMI Mode has no parameter.
+		 */
+		ulResult = module_activateSmiMode();
 		break;
 	}
 
