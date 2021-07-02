@@ -84,6 +84,32 @@ typedef struct IOLWM_PARAM_VS_STACKREADY_IND_STRUCT
     unsigned char  ucRfRevisionMajor;
 } IOLWM_PARAM_VS_STACKREADY_IND_T;
 
+typedef struct IOLWM_PARAM_SMI_VS_RADIO_TEST_DATA_STRUCT
+{
+	unsigned short usArgBlockID;
+	unsigned char  ucCommand;
+	unsigned char  ucTrack;
+	unsigned char  ucModulation;
+	unsigned char  ucTestPattern;
+	unsigned char  ucFrequencyIndex;
+	unsigned long  ulGeneratorInitValue;
+	unsigned char  ucTxPowerValue;
+} IOLWM_PARAM_SMI_VS_RADIO_TEST_DATA_T;
+
+typedef struct IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_STRUCT
+{
+	unsigned char ucClientID;
+	unsigned char ucPortNumber;
+	unsigned short usArgBlockLength;
+	IOLWM_PARAM_SMI_VS_RADIO_TEST_DATA_T tArgBlockData;
+} IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T;
+
+typedef struct IOLWM_PARAM_SMI_VS_WRITE_CNF_STRUCT
+{
+	unsigned char  ucClientID;
+	unsigned char  ucPortNumber;
+	unsigned short usResult;
+} IOLWM_PARAM_SMI_VS_WRITE_CNF_T;
 
 #pragma pack(pop)
 
@@ -152,6 +178,20 @@ typedef struct IOLWM_PARAM_VS_STACKREADY_IND_STRUCT
 #define IOLWM_SMI_VS_WRITE_CNF_OPCODE                       0x81
 #define IOLWM_SMI_VS_READ_CNF_OPCODE                        0x82
 #define IOLWM_SMI_VS_IND_OPCODE                             0x83
+
+#define ARG_BLK_ID_MASTER_IDENT                             0x0000
+#define ARG_BLK_ID_MASTER_CONFIG                            0x0002
+#define ARG_BLK_ID_PORT_CONFIG                              0x8002
+#define ARG_BLK_ID_TRACK_CONFIG                             0x8003
+#define ARG_BLK_ID_SCAN_STATUS                              0x8004
+#define ARG_BLK_ID_PORT_STATUS                              0x9002
+#define ARG_BLK_ID_TRACK_STATUS                             0x9003
+#define ARG_BLK_ID_SCAN                                     0x9004
+#define ARG_BLK_ID_PORT_EVENT                               0xA001
+#define ARG_BLK_ID_PDIN                                     0x1001
+#define ARG_BLK_ID_PDOUT                                    0x1002
+
+#define ARG_BLK_ID_VS_RADIO_CON_TEST                        0xB051
 
 /*-------------------------------------------------------------------------*/
 
@@ -463,11 +503,73 @@ static unsigned long module_activateSmiMode(void)
 		ulValue |= (unsigned long)(aucBuffer[2]<<8U);
 		if( ulValue!=0 )
 		{
-			ulResult = IOLWM_RESULT_ModuleError;
+			ulResult = IOLWM_RESULT_EhciError;
 		}
 	}
 
 	return ulResult;
+}
+
+
+
+static unsigned long smi_vs_radio_test(unsigned char ucTrack, unsigned char ucCommand, unsigned char ucModulation, unsigned char ucTestPattern, unsigned char ucFrequencyIndex, unsigned long ulDataWhitenerIv, unsigned char ucTxPowerValue)
+{
+	unsigned long ulResult;
+	unsigned long ulSize;
+	IOLWM_EHCI_COMMAND_PACKET_STRUCT tPacket;
+	union
+	{
+		IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T t;
+		unsigned char auc[sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T)];
+	} uData;
+	union
+	{
+		unsigned char auc[256];
+		IOLWM_PARAM_SMI_VS_WRITE_CNF_T t;
+	} uCnf;
+
+
+	uData.t.ucClientID = 0x01;
+	uData.t.ucPortNumber = 0x00;
+	uData.t.usArgBlockLength = sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T);
+	uData.t.tArgBlockData.usArgBlockID = ARG_BLK_ID_VS_RADIO_CON_TEST;
+	uData.t.tArgBlockData.ucCommand = ucCommand;
+	uData.t.tArgBlockData.ucTrack = ucTrack;
+	uData.t.tArgBlockData.ucModulation = ucModulation;
+	uData.t.tArgBlockData.ucTestPattern = ucTestPattern;
+	uData.t.tArgBlockData.ucFrequencyIndex = ucFrequencyIndex;
+	uData.t.tArgBlockData.ulGeneratorInitValue = ulDataWhitenerIv;
+	uData.t.tArgBlockData.ucTxPowerValue = ucTxPowerValue;
+	command_create(&tPacket, IOLWM_SMI_VS_WRITE_REQ_OPCODE, sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T));
+
+	uart_send(&tPacket, sizeof(IOLWM_EHCI_COMMAND_HEADER_T));
+	uart_send(uData.auc, sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T));
+
+	ulSize = 0;
+	ulResult = event_wait(uCnf.auc, &ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_VS_WRITE_CNF_OPCODE, 10);
+	if( ulResult==IOLWM_RESULT_Ok )
+	{
+		if( ulSize>=sizeof(IOLWM_PARAM_SMI_VS_WRITE_CNF_T) )
+		{
+			if( uCnf.t.usResult!=0 )
+			{
+				ulResult = IOLWM_RESULT_EhciError;
+			}
+		}
+		else
+		{
+			ulResult = IOLWM_RESULT_InvalidPacketSize;
+		}
+	}
+
+	return ulResult;
+}
+
+
+
+static unsigned long module_prepareRadioTest(void)
+{
+	return smi_vs_radio_test(0, IOLWM_RADIO_TEST_CMD_CON_PREPARE, 0, 0, 1, 0, 15);
 }
 
 
@@ -499,6 +601,11 @@ unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, uns
 		/* Activate SMI Mode has no parameter.
 		 */
 		ulResult = module_activateSmiMode();
+		break;
+
+	case IOLWM_COMMAND_RadioTestPrepare:
+		/* Prepare the radio test. */
+		ulResult = module_prepareRadioTest();
 		break;
 	}
 

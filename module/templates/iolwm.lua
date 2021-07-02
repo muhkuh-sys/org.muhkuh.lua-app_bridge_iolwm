@@ -35,6 +35,7 @@ function AppBridgeModuleIolwm:_init(tAppBridge, tLog)
 
   self.IOLWM_COMMAND_WaitForPowerup = ${IOLWM_COMMAND_WaitForPowerup}
   self.IOLWM_COMMAND_ActivateSmiMode = ${IOLWM_COMMAND_ActivateSmiMode}
+  self.IOLWM_COMMAND_RadioTestPrepare = ${IOLWM_COMMAND_RadioTestPrepare}
 end
 
 
@@ -81,5 +82,18 @@ function AppBridgeModuleIolwm:activateSmiMode()
   end
 end
 
+
+function AppBridgeModuleIolwm:radioTestPrepare()
+  local tAppBridge = self.tAppBridge
+  local tLog = self.tLog
+
+  local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_RadioTestPrepare)
+  if ulValue~=0 then
+    tLog.error('Failed to prepare the radio test: 0x%08x', ulValue)
+    error('Failed to prepare the radio test.')
+  else
+    tLog.info('Radio test prepared.')
+  end
+end
 
 return AppBridgeModuleIolwm
