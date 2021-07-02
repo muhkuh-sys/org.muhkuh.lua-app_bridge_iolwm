@@ -29,7 +29,8 @@ typedef enum IOLWM_RESULT_ENUM
 	IOLWM_RESULT_UnknownCommand               =  1,
 	IOLWM_RESULT_Timout                       =  2,
 	IOLWM_RESULT_InvalidPacketSize            =  3,
-	IOLWM_RESULT_EhciError                    =  4
+	IOLWM_RESULT_EhciError                    =  4,
+	IOLWM_RESULT_ParameterError               =  5
 } IOLWM_RESULT_T;
 
 
@@ -38,6 +39,8 @@ typedef enum IOLWM_COMMAND_ENUM
 	IOLWM_COMMAND_WaitForPowerup              = 0,
 	IOLWM_COMMAND_ActivateSmiMode             = 1,
 	IOLWM_COMMAND_RadioTestPrepare            = 2,
+	IOLWM_COMMAND_RadioTestContTx             = 3,
+	IOLWM_COMMAND_RadioTestStop               = 4
 } IOLWM_COMMAND_T;
 
 

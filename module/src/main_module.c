@@ -574,7 +574,55 @@ static unsigned long module_prepareRadioTest(void)
 
 
 
-unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, unsigned long ulParameter2, unsigned long ulParameter3)
+static unsigned long module_radioTestContTx(unsigned long ulTrack, unsigned long ulFrequencyIndex)
+{
+	unsigned long ulResult;
+	unsigned char ucTrack;
+	unsigned char ucFrequencyIndex;
+
+
+	if( ulTrack>0x000000ffU )
+	{
+		ulResult = IOLWM_RESULT_ParameterError;
+	}
+	else if( ulFrequencyIndex>0x000000ffU )
+	{
+		ulResult = IOLWM_RESULT_ParameterError;
+	}
+	else
+	{
+		ucTrack = (unsigned char)ulTrack;
+		ucFrequencyIndex = (unsigned char)ulFrequencyIndex;
+		ulResult = smi_vs_radio_test(ucTrack, IOLWM_RADIO_TEST_CMD_CON_TX, 0, 0, ucFrequencyIndex, 0, 15);
+	}
+
+	return ulResult;
+}
+
+
+
+static unsigned long module_radioTestStop(unsigned long ulTrack)
+{
+	unsigned long ulResult;
+	unsigned char ucTrack;
+
+
+	if( ulTrack>0x000000ffU )
+	{
+		ulResult = IOLWM_RESULT_ParameterError;
+	}
+	else
+	{
+		ucTrack = (unsigned char)ulTrack;
+		return smi_vs_radio_test(ucTrack, IOLWM_RADIO_TEST_CMD_CON_STOP, 0, 0, 1, 0, 15);
+	}
+
+	return ulResult;
+}
+
+
+
+unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, unsigned long ulParameter2, unsigned long ulParameter3 __attribute__((unused)))
 {
 	unsigned long ulResult;
 	IOLWM_COMMAND_T tCmd;
@@ -606,6 +654,16 @@ unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, uns
 	case IOLWM_COMMAND_RadioTestPrepare:
 		/* Prepare the radio test. */
 		ulResult = module_prepareRadioTest();
+		break;
+
+	case IOLWM_COMMAND_RadioTestContTx:
+		/* Run the "ContTx" radio test. */
+		ulResult = module_radioTestContTx(ulParameter1, ulParameter2);
+		break;
+
+	case IOLWM_COMMAND_RadioTestStop:
+		/* Stop the radio test on a track. */
+		ulResult = module_radioTestStop(ulParameter1);
 		break;
 	}
 

@@ -36,6 +36,8 @@ function AppBridgeModuleIolwm:_init(tAppBridge, tLog)
   self.IOLWM_COMMAND_WaitForPowerup = ${IOLWM_COMMAND_WaitForPowerup}
   self.IOLWM_COMMAND_ActivateSmiMode = ${IOLWM_COMMAND_ActivateSmiMode}
   self.IOLWM_COMMAND_RadioTestPrepare = ${IOLWM_COMMAND_RadioTestPrepare}
+	self.IOLWM_COMMAND_RadioTestContTx = ${IOLWM_COMMAND_RadioTestContTx}
+	self.IOLWM_COMMAND_RadioTestStop = ${IOLWM_COMMAND_RadioTestStop}
 end
 
 
@@ -95,5 +97,62 @@ function AppBridgeModuleIolwm:radioTestPrepare()
     tLog.info('Radio test prepared.')
   end
 end
+
+
+function AppBridgeModuleIolwm:radioTestContTx(ucTrack, ucFrequencyIndex)
+  local tAppBridge = self.tAppBridge
+  local tLog = self.tLog
+  local fArgsOk
+
+  -- Check the arguments.
+  fArgsOk = true
+  if ucTrack<0 or ucTrack>0xff then
+    tLog.error('The argument "ucTrack" exceeds the 8bit range. Its value is %d.', ucTrack)
+    fArgsOk = false
+  end
+  if ucFrequencyIndex<0 or ucFrequencyIndex>0xff then
+    tLog.error('The argument "ucFrequencyIndex" exceeds the 8bit range. Its value is %d.', ucFrequencyIndex)
+    fArgsOk = false
+  end
+  if fArgsOk==false then
+    tLog.error('Invalid arguments.')
+    error('Invalid arguments.')
+  end
+
+  local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_RadioTestContTx, ucTrack, ucFrequencyIndex)
+  if ulValue~=0 then
+    tLog.error('Failed to start the "ContTx" radio test: 0x%08x', ulValue)
+    error('Failed to start the "ContTx" radio test.')
+  else
+    tLog.info('Radio test "ContTx" started on track %d and frequency index %d.', ucTrack, ucFrequencyIndex)
+  end
+end
+
+
+function AppBridgeModuleIolwm:radioTestStop(ucTrack)
+  local tAppBridge = self.tAppBridge
+  local tLog = self.tLog
+  local fArgsOk
+
+  -- Check the arguments.
+  fArgsOk = true
+  if ucTrack<0 or ucTrack>0xff then
+    tLog.error('The argument "ucTrack" exceeds the 8bit range. Its value is %d.', ucTrack)
+    fArgsOk = false
+  end
+  if fArgsOk==false then
+    tLog.error('Invalid arguments.')
+    error('Invalid arguments.')
+  end
+
+  local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_RadioTestStop, ucTrack)
+  if ulValue~=0 then
+    tLog.error('Failed to stop the radio test: 0x%08x', ulValue)
+    error('Failed to stop radio test.')
+  else
+    tLog.info('Radio test stopped on track %d.', ucTrack)
+  end
+end
+
 
 return AppBridgeModuleIolwm
