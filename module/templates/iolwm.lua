@@ -5,9 +5,9 @@ function AppBridgeModuleIolwm:_init(tAppBridge, tLog)
   self.pl = require'pl.import_into'()
   self.bit = require 'bit'
 
-  local vstruct = require 'vstruct'                                                                                                                                                                        
-  self.vstruct = vstruct                                                                                                                                                                                   
-  tLog.debug('Using vstruct V%s', vstruct._VERSION)  
+  local vstruct = require 'vstruct'
+  self.vstruct = vstruct
+  tLog.debug('Using vstruct V%s', vstruct._VERSION)
 
   self.tAppBridge = tAppBridge
   self.tLog = tLog
@@ -36,8 +36,9 @@ function AppBridgeModuleIolwm:_init(tAppBridge, tLog)
   self.IOLWM_COMMAND_WaitForPowerup = ${IOLWM_COMMAND_WaitForPowerup}
   self.IOLWM_COMMAND_ActivateSmiMode = ${IOLWM_COMMAND_ActivateSmiMode}
   self.IOLWM_COMMAND_RadioTestPrepare = ${IOLWM_COMMAND_RadioTestPrepare}
-	self.IOLWM_COMMAND_RadioTestContTx = ${IOLWM_COMMAND_RadioTestContTx}
-	self.IOLWM_COMMAND_RadioTestStop = ${IOLWM_COMMAND_RadioTestStop}
+  self.IOLWM_COMMAND_RadioTestContTx = ${IOLWM_COMMAND_RadioTestContTx}
+  self.IOLWM_COMMAND_RadioTestStop = ${IOLWM_COMMAND_RadioTestStop}
+
 end
 
 
