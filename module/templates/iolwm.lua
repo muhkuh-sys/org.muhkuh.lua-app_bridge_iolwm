@@ -39,6 +39,14 @@ function AppBridgeModuleIolwm:_init(tAppBridge, tLog)
   self.IOLWM_COMMAND_RadioTestContTx = ${IOLWM_COMMAND_RadioTestContTx}
   self.IOLWM_COMMAND_RadioTestStop = ${IOLWM_COMMAND_RadioTestStop}
 
+  self.atErrorMessages = {
+    [${IOLWM_RESULT_Ok}]  = 'OK',
+    [${IOLWM_RESULT_UnknownCommand}] = 'unknown command',
+    [${IOLWM_RESULT_Timout}] = 'timeout',
+    [${IOLWM_RESULT_InvalidPacketSize}] = 'invalid packet size',
+    [${IOLWM_RESULT_EhciError}] = 'EHCI error',
+    [${IOLWM_RESULT_ParameterError}] = 'parameter error'
+  }
 end
 
 
@@ -72,14 +80,20 @@ function AppBridgeModuleIolwm:initialize()
 end
 
 
+function AppBridgeModuleIolwm:getErrorMessage(ulErrorCode)
+  return self.atErrorMessages[ulErrorCode] or 'unknown error'
+end
+
+
 function AppBridgeModuleIolwm:activateSmiMode()
   local tAppBridge = self.tAppBridge
   local tLog = self.tLog
 
   local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_ActivateSmiMode)
   if ulValue~=0 then
-    tLog.error('Failed to activate SMI mode: 0x%08x', ulValue)
-    error('Failed to activate SMI mode.')
+    local strMsg = string.format('Failed to activate SMI mode: 0x%08x %s', ulValue, self:getErrorMessage(ulValue))
+    tLog.error(strMsg)
+    error(strMsg)
   else
     tLog.info('SMI mode activated.')
   end
@@ -92,8 +106,9 @@ function AppBridgeModuleIolwm:radioTestPrepare()
 
   local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_RadioTestPrepare)
   if ulValue~=0 then
-    tLog.error('Failed to prepare the radio test: 0x%08x', ulValue)
-    error('Failed to prepare the radio test.')
+    local strMsg = string.format('Failed to prepare the radio test: 0x%08x %s', ulValue, self:getErrorMessage(ulValue))
+    tLog.error(strMsg)
+    error(strMsg)
   else
     tLog.info('Radio test prepared.')
   end
@@ -122,8 +137,9 @@ function AppBridgeModuleIolwm:radioTestContTx(ucTrack, ucFrequencyIndex)
 
   local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_RadioTestContTx, ucTrack, ucFrequencyIndex)
   if ulValue~=0 then
-    tLog.error('Failed to start the "ContTx" radio test: 0x%08x', ulValue)
-    error('Failed to start the "ContTx" radio test.')
+    local strMsg = string.format('Failed to start the "ContTx" radio test: 0x%08x %s', ulValue, self:getErrorMessage(ulValue))
+    tLog.error(strMsg)
+    error(strMsg)
   else
     tLog.info('Radio test "ContTx" started on track %d and frequency index %d.', ucTrack, ucFrequencyIndex)
   end
@@ -148,8 +164,9 @@ function AppBridgeModuleIolwm:radioTestStop(ucTrack)
 
   local ulValue = tAppBridge:call(self.ulModuleExecAddress, self.IOLWM_COMMAND_RadioTestStop, ucTrack)
   if ulValue~=0 then
-    tLog.error('Failed to stop the radio test: 0x%08x', ulValue)
-    error('Failed to stop radio test.')
+    local strMsg = string.format('Failed to stop the radio test: 0x%08x %s', ulValue, self:getErrorMessage(ulValue))
+    tLog.error(strMsg)
+    error(strMsg)
   else
     tLog.info('Radio test stopped on track %d.', ucTrack)
   end
