@@ -5,6 +5,9 @@
 /targets/
 /module/targets/
 
+# Ignore all files in the attic.
+/attic/
+
 # Ignore all compiled python modules.
 *.pyc
 
