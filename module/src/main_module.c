@@ -41,6 +41,9 @@ typedef union PTR_UNION
 
 /*-------------------------------------------------------------------------*/
 
+#define IOLWM_MAX_PACKET_SIZE 255
+
+
 /* NOTE: Use "pragma pack" instead of "attribute packed" as the latter does not work on MinGW.
  *       See here for details: https://sourceforge.net/p/mingw-w64/bugs/588/
  */
@@ -52,7 +55,7 @@ typedef struct IOLWM_EHCI_EVENT_HEADER_STRUCT
 	unsigned char  ucEventCode;
 	unsigned char  ucTotalLength;
 	unsigned char  ucEventOpcode;
-	unsigned char  ucReserved;
+	unsigned char  ucMsgCounter;
 } IOLWM_EHCI_EVENT_HEADER_T;
 
 
@@ -62,15 +65,10 @@ typedef struct IOLWM_EHCI_COMMAND_HEADER_STRUCT
 	unsigned short usHandle;
 	unsigned short usTotalLength;
 	unsigned short usOpcode;
-	unsigned short usReserved;
+	unsigned char  ucMsgCounter;
+	unsigned char  ucReserved;
 } IOLWM_EHCI_COMMAND_HEADER_T;
 
-
-typedef struct IOLWM_EHCI_COMMAND_PACKET_STRUCT
-{
-	IOLWM_EHCI_COMMAND_HEADER_T tHeader;
-	unsigned char aucPayload[255-sizeof(IOLWM_EHCI_COMMAND_HEADER_T)];
-} IOLWM_EHCI_COMMAND_PACKET_STRUCT;
 
 typedef struct IOLWM_PARAM_VS_STACKREADY_IND_STRUCT
 {
@@ -83,6 +81,12 @@ typedef struct IOLWM_PARAM_VS_STACKREADY_IND_STRUCT
     unsigned char  ucRfRevisionMinor;
     unsigned char  ucRfRevisionMajor;
 } IOLWM_PARAM_VS_STACKREADY_IND_T;
+
+typedef struct IOLWM_PARAM_SMI_CM_CONFIG_REQ_STRUCT
+{
+	unsigned char  ucClientID;
+	unsigned char  ucSmiMode;
+} IOLWM_PARAM_SMI_CM_CONFIG_REQ_T;
 
 typedef struct IOLWM_PARAM_SMI_VS_RADIO_TEST_DATA_STRUCT
 {
@@ -111,6 +115,37 @@ typedef struct IOLWM_PARAM_SMI_VS_WRITE_CNF_STRUCT
 	unsigned short usResult;
 } IOLWM_PARAM_SMI_VS_WRITE_CNF_T;
 
+
+typedef struct IOLWM_EHCI_COMMAND_PACKET_STRUCT
+{
+	union
+	{
+		unsigned char auc[sizeof(IOLWM_EHCI_COMMAND_HEADER_T)];
+		IOLWM_EHCI_COMMAND_HEADER_T t;
+	} uHeader;
+	union
+	{
+		unsigned char auc[IOLWM_MAX_PACKET_SIZE-sizeof(IOLWM_EHCI_COMMAND_HEADER_T)];
+		IOLWM_PARAM_SMI_CM_CONFIG_REQ_T tSmiCmConfigReq;
+		IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T tSmiVsRadioTestReq;
+	} uPayload;
+} IOLWM_EHCI_COMMAND_PACKET_T;
+
+
+typedef struct IOLWM_EHCI_EVENT_PACKET_STRUCT
+{
+	union
+	{
+		unsigned char auc[sizeof(IOLWM_EHCI_EVENT_HEADER_T)];
+		IOLWM_EHCI_EVENT_HEADER_T t;
+	} uHeader;
+	union
+	{
+		unsigned char auc[IOLWM_MAX_PACKET_SIZE-sizeof(IOLWM_EHCI_EVENT_HEADER_T)];
+		IOLWM_PARAM_SMI_VS_WRITE_CNF_T tSmiVsWriteCnf;
+	} uPayload;
+} IOLWM_EHCI_EVENT_PACKET_T;
+
 #pragma pack(pop)
 
 /*-------------------------------------------------------------------------*/
@@ -121,12 +156,27 @@ typedef struct IOLWM_PARAM_SMI_VS_WRITE_CNF_STRUCT
 #define IOLWM_RADIO_TEST_CMD_CON_RX         2
 #define IOLWM_RADIO_TEST_CMD_CON_PREPARE    3
 
-#define IOLW_EHCI_API_EVENT_CODE_VALUE      0xFF                                                                                                                                              
-#define IOLW_EHCI_SMI_EVENT_CODE_VALUE      0xFE                                                                                                                                              
+#define IOLWM_RADIO_TEST_CMD_MODULATION_CW    0
+#define IOLWM_RADIO_TEST_CMD_MODULATION_GFSK  1
 
-#define IOLWM_VS_STACK_READY_IND_OPCODE     0x80                                                                                                                                              
-#define IOLWM_VS_STACK_REVISION_CNF_OPCODE  0x81                                                                                                                                              
-#define IOLWM_VS_RF_REVISION_CNF_OPCODE     0x82                                                                                                                                              
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_PRBS9       0
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_PRBS15      1
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_ZOZO        2
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_All1        3
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_All0        4
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_F0F0        5
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_FF00        6
+#define IOLWM_RADIO_TEST_CMD_TESTPATTERN_UserDefine  7
+
+#define IOLWM_EHCI_PACKET_TYPE_COMMAND      2
+#define IOLWM_EHCI_PACKET_TYPE_EVENT        4
+
+#define IOLW_EHCI_API_EVENT_CODE_VALUE      0xFF
+#define IOLW_EHCI_SMI_EVENT_CODE_VALUE      0xFE
+
+#define IOLWM_VS_STACK_READY_IND_OPCODE     0x80
+#define IOLWM_VS_STACK_REVISION_CNF_OPCODE  0x81
+#define IOLWM_VS_RF_REVISION_CNF_OPCODE     0x82
 
 #define IOLWM_SMI_CM_CONFIG_REQ_OPCODE                      0xFE10
 #define IOLWM_SMI_CM_MASTER_IDENT_REQ_OPCODE                0xFE01
@@ -152,7 +202,6 @@ typedef struct IOLWM_PARAM_SMI_VS_WRITE_CNF_STRUCT
 #define IOLWM_SMI_VS_WRITE_REQ_OPCODE                       0xFE81
 #define IOLWM_SMI_VS_READ_REQ_OPCODE                        0xFE82
 
-#define IOLWM_SMI_CM_CONFIG_CNF_OPCODE                      0x10
 #define IOLWM_SMI_CM_MASTER_IDENT_CNF_OPCODE                0x01
 #define IOLWM_SMI_CM_MASTER_CONFIG_CNF_OPCODE               0x02
 #define IOLWM_SMI_CM_RDB_MASTER_CONFIG_CNF_OPCODE           0x03
@@ -165,6 +214,7 @@ typedef struct IOLWM_PARAM_SMI_VS_WRITE_CNF_STRUCT
 #define IOLWM_SMI_CM_SCAN_CNF_OPCODE                        0x0A
 #define IOLWM_SMI_CM_SCAN_STATUS_CNF_OPCODE                 0x0B
 #define IOLWM_SMI_CM_PORT_EVENT_IND_OPCODE                  0x0C
+#define IOLWM_SMI_CM_CONFIG_CNF_OPCODE                      0x10
 #define IOLWM_SMI_DS_READ_CNF_OPCODE                        0x20
 #define IOLWM_SMI_DS_WRITE_CNF_OPCODE                       0x21
 #define IOLWM_SMI_ODE_DEVICE_WRITE_CNF_OPCODE               0x30
@@ -178,6 +228,7 @@ typedef struct IOLWM_PARAM_SMI_VS_WRITE_CNF_STRUCT
 #define IOLWM_SMI_VS_WRITE_CNF_OPCODE                       0x81
 #define IOLWM_SMI_VS_READ_CNF_OPCODE                        0x82
 #define IOLWM_SMI_VS_IND_OPCODE                             0x83
+#define IOLWM_SMI_ACK_OPCODE                                0x86
 
 #define ARG_BLK_ID_MASTER_IDENT                             0x0000
 #define ARG_BLK_ID_MASTER_CONFIG                            0x0002
@@ -192,6 +243,16 @@ typedef struct IOLWM_PARAM_SMI_VS_WRITE_CNF_STRUCT
 #define ARG_BLK_ID_PDOUT                                    0x1002
 
 #define ARG_BLK_ID_VS_RADIO_CON_TEST                        0xB051
+
+/*-------------------------------------------------------------------------*/
+
+static union {
+	unsigned char auc[IOLWM_MAX_PACKET_SIZE];
+	IOLWM_EHCI_COMMAND_PACKET_T tCommand;
+	IOLWM_EHCI_EVENT_PACKET_T tEvent;
+} m_uBuffer;
+
+static unsigned int m_uiMsgCounter;
 
 /*-------------------------------------------------------------------------*/
 
@@ -380,15 +441,42 @@ static unsigned long uart_receive(unsigned char *pucData, unsigned int sizData, 
 
 
 
-static unsigned long event_wait(unsigned char *pucBuffer, unsigned long *pulSize, unsigned char ucOpcode, unsigned char ucSubcode, unsigned long ulRetries)
+static unsigned int fletcher(const unsigned char *pucData, unsigned int sizData)
+{
+	unsigned int uiSum1;
+	unsigned int uiSum2;
+
+
+	uiSum1 = 0;
+	uiSum2 = 0;
+
+	while( sizData!=0 )
+	{
+		uiSum1 = uiSum1 + (*(pucData++));
+		if( uiSum1>=255 )
+		{
+			uiSum1 -= 255;
+		}
+		uiSum2 = uiSum2 + uiSum1;
+		if( uiSum2>=255 )
+		{
+			uiSum2 -= 255;
+		}
+		--sizData;
+	}
+
+	return (uiSum2<<8U) | uiSum1;
+}
+
+
+
+static unsigned long event_wait(unsigned long *pulSize, unsigned char ucOpcode, unsigned char ucSubcode, unsigned long ulRetries)
 {
 	unsigned long ulResult;
 	int iReceivedPacket;
 	unsigned long ulSize;
-	union {
-		unsigned char auc[sizeof(IOLWM_EHCI_EVENT_HEADER_T)];
-		IOLWM_EHCI_EVENT_HEADER_T t;
-	} uHeader;
+	unsigned int uiChecksumMy;
+	unsigned int uiChecksumRec;
 
 
 	ulResult = IOLWM_RESULT_Ok;
@@ -397,25 +485,39 @@ static unsigned long event_wait(unsigned char *pucBuffer, unsigned long *pulSize
 	do
 	{
 		/* Receive the header. */
-		ulResult = uart_receive(uHeader.auc, sizeof(IOLWM_EHCI_EVENT_HEADER_T), 0, 1000);
+		ulResult = uart_receive(m_uBuffer.auc, sizeof(IOLWM_EHCI_EVENT_HEADER_T), 0, 1000);
 		if( ulResult==IOLWM_RESULT_Ok )
 		{
-			/* Get the size of the data part. */
-			ulSize = uHeader.t.ucTotalLength-2U;
+			/* Get the size of the payload part.
+			 * 2 bytes of the total length were already received in the header data.
+			 */
+			ulSize = m_uBuffer.tEvent.uHeader.t.ucTotalLength - 2U;
 
-			/* Now read the data part. */
-			ulResult = uart_receive(pucBuffer, ulSize, 0, 1000);
+			/* Now read the payload part. */
+			ulResult = uart_receive(m_uBuffer.tEvent.uPayload.auc, ulSize, 0, 1000);
 			if( ulResult==IOLWM_RESULT_Ok )
 			{
-				/* Is this the requested packet? */
-				if( ucOpcode==uHeader.t.ucEventCode && ucSubcode==uHeader.t.ucEventOpcode )
+				/* The last 2 bytes are the checksum of the packet. */
+				uiChecksumRec  = (unsigned int)(m_uBuffer.tEvent.uPayload.auc[ulSize-2U]);
+				uiChecksumRec |= (unsigned int)(m_uBuffer.tEvent.uPayload.auc[ulSize-1U] << 8U);
+
+				/* Generate the checksum for the data part. */
+				uiChecksumMy = fletcher(m_uBuffer.auc, sizeof(IOLWM_EHCI_EVENT_HEADER_T)+ulSize-2U);
+				if( uiChecksumRec==uiChecksumMy )
 				{
-					/* Yes, this is the correct package. */
-					if( pulSize!=NULL )
+					/* Is this the requested packet? */
+					if(
+						ucOpcode==m_uBuffer.tEvent.uHeader.t.ucEventCode &&
+						ucSubcode==m_uBuffer.tEvent.uHeader.t.ucEventOpcode
+					)
 					{
-						*pulSize = ulSize;
+						/* Yes, this is the correct package. */
+						if( pulSize!=NULL )
+						{
+							*pulSize = ulSize;
+						}
+						iReceivedPacket = 1;
 					}
-					iReceivedPacket = 1;
 				}
 			}
 		}
@@ -430,18 +532,74 @@ static unsigned long event_wait(unsigned char *pucBuffer, unsigned long *pulSize
 }
 
 
+static void send_command_ack(unsigned int uiMsgCounter)
+{
+	unsigned int uiChecksum;
+
+
+	/* Create an event ACK packet. */
+	m_uBuffer.tCommand.uHeader.t.ucPacketType = IOLWM_EHCI_PACKET_TYPE_COMMAND;
+	m_uBuffer.tCommand.uHeader.t.usHandle = 0x0001U;
+	m_uBuffer.tCommand.uHeader.t.usTotalLength = 6U;
+	m_uBuffer.tCommand.uHeader.t.usOpcode = 0xfe86U;
+	m_uBuffer.tCommand.uHeader.t.ucMsgCounter = (unsigned char)(uiMsgCounter & 0xffU);
+	m_uBuffer.tCommand.uHeader.t.ucReserved = 0x00U;
+
+	/* Add the checksum. */
+	uiChecksum = fletcher(m_uBuffer.tCommand.uHeader.auc, sizeof(IOLWM_EHCI_COMMAND_HEADER_T));
+	m_uBuffer.tCommand.uPayload.auc[0] = (unsigned char)( uiChecksum        & 0xffU);
+	m_uBuffer.tCommand.uPayload.auc[1] = (unsigned char)((uiChecksum >> 8U) & 0xffU);
+
+	/* Send the packet. */
+	uart_send(m_uBuffer.auc, sizeof(IOLWM_EHCI_COMMAND_HEADER_T)+2U);
+}
+
+#if 0
+static void send_event_ack(unsigned char ucMsgCounter)
+{
+	unsigned int uiChecksum;
+
+
+	/* Create an event ACK packet. */
+	m_uBuffer.tEvent.uHeader.t.ucPacketType = 0x04;
+	m_uBuffer.tEvent.uHeader.t.ucEventCode = 0xFE;
+	m_uBuffer.tEvent.uHeader.t.ucTotalLength = 4;
+	m_uBuffer.tEvent.uHeader.t.ucEventOpcode = 0x86;
+	m_uBuffer.tEvent.uHeader.t.ucMsgCounter = ucMsgCounter;
+
+	/* Add the checksum. */
+	uiChecksum = fletcher(m_uBuffer.tEvent.uHeader.auc, sizeof(IOLWM_EHCI_EVENT_HEADER_T));
+	m_uBuffer.tEvent.uPayload.auc[0] = (unsigned char)( uiChecksum        & 0xffU);
+	m_uBuffer.tEvent.uPayload.auc[1] = (unsigned char)((uiChecksum >> 8U) & 0xffU);
+
+	/* Send the packet. */
+	uart_send(m_uBuffer.auc, sizeof(IOLWM_EHCI_EVENT_HEADER_T)+2U);
+}
+#endif
+
 static unsigned long module_waitforpowerup(unsigned char *pucBuffer)
 {
 	unsigned long ulResult;
 	unsigned long ulSize;
+	unsigned int uiMsgCounter;
 
 
 	ulSize = 0;
-	ulResult = event_wait(pucBuffer, &ulSize, IOLW_EHCI_API_EVENT_CODE_VALUE, IOLWM_VS_STACK_READY_IND_OPCODE, 10);
+	ulResult = event_wait(&ulSize, IOLW_EHCI_API_EVENT_CODE_VALUE, IOLWM_VS_STACK_READY_IND_OPCODE, 10);
 	if( ulResult==IOLWM_RESULT_Ok )
 	{
 		if( ulSize>=sizeof(IOLWM_PARAM_VS_STACKREADY_IND_T) )
 		{
+			/* Copy the data to the user buffer. */
+			memcpy(pucBuffer, m_uBuffer.tEvent.uPayload.auc, sizeof(IOLWM_PARAM_VS_STACKREADY_IND_T));
+
+			/* Acknowledge the event. */
+			uiMsgCounter = m_uBuffer.tEvent.uHeader.t.ucMsgCounter;
+			send_command_ack(uiMsgCounter);
+
+			/* Synchronize the local message counter. */
+			m_uiMsgCounter = uiMsgCounter;
+
 			ulResult = IOLWM_RESULT_Ok;
 		}
 		else
@@ -455,55 +613,81 @@ static unsigned long module_waitforpowerup(unsigned char *pucBuffer)
 
 
 
-static void command_create(IOLWM_EHCI_COMMAND_PACKET_STRUCT *ptPacket, unsigned short usOpcode, unsigned short sizPayload)
+static void command_create(IOLWM_EHCI_COMMAND_PACKET_T *ptPacket, unsigned short usOpcode, unsigned short sizPayload)
 {
-	ptPacket->tHeader.ucPacketType = 0x02;
-	ptPacket->tHeader.usHandle = 0x0001;
-	ptPacket->tHeader.usTotalLength = (unsigned short)(4U + sizPayload);
-	ptPacket->tHeader.usOpcode = usOpcode;
-	ptPacket->tHeader.usReserved = 0x0000;
+	ptPacket->uHeader.t.ucPacketType = 0x02;
+	ptPacket->uHeader.t.usHandle = 0x0001;
+	/* Set the total length of the packet.
+	 * This includes all header fields after the "usTotalLength", the payload data and the 2 byte checksum.
+	 */
+	ptPacket->uHeader.t.usTotalLength = (unsigned short)(4U + sizPayload + 2U);
+	ptPacket->uHeader.t.usOpcode = usOpcode;
+	ptPacket->uHeader.t.ucMsgCounter = (unsigned char)(m_uiMsgCounter & 0xffU);
+	ptPacket->uHeader.t.ucReserved = 0x00;
+}
+
+
+
+static void generate_command_checksum(unsigned int sizData)
+{
+	unsigned int uiChecksum;
+	unsigned char *pucChecksum;
+
+
+	/* Build the checksum over header and data. */
+	uiChecksum = fletcher(m_uBuffer.auc, sizeof(IOLWM_EHCI_COMMAND_HEADER_T) + sizData);
+	/* Append the checksum to the data. */
+	pucChecksum = m_uBuffer.tCommand.uPayload.auc + sizData;
+	*(pucChecksum++) = (unsigned char)( uiChecksum & 0x00ffU);
+	*pucChecksum     = (unsigned char)((uiChecksum & 0xff00U) >> 8U);
 }
 
 
 
 static unsigned long module_activateSmiMode(void)
 {
-	unsigned int uiRetries;
 	unsigned long ulResult;
 	unsigned long ulSize;
-	unsigned long ulValue;
-	IOLWM_EHCI_COMMAND_PACKET_STRUCT tPacket;
-	unsigned char aucBuffer[256];
+	unsigned int uiStatus;
 
 
-	command_create(&tPacket, IOLWM_SMI_CM_CONFIG_REQ_OPCODE, 2);
-	tPacket.aucPayload[0] = 0x01;  // ClientID
-	tPacket.aucPayload[1] = 0x01;  // SMI_Mode = ON
+	++m_uiMsgCounter;
 
-//	uiRetries = 10;
-//	do
-//	{
-		uart_send(&tPacket, sizeof(IOLWM_EHCI_COMMAND_HEADER_T)+2);
+	command_create(&(m_uBuffer.tCommand), IOLWM_SMI_CM_CONFIG_REQ_OPCODE, sizeof(IOLWM_PARAM_SMI_CM_CONFIG_REQ_T));
+	m_uBuffer.tCommand.uPayload.tSmiCmConfigReq.ucClientID = 0x01;  // ClientID 1
+	m_uBuffer.tCommand.uPayload.tSmiCmConfigReq.ucSmiMode = 0x01;   // SMI Mode = ON
+	generate_command_checksum(sizeof(IOLWM_PARAM_SMI_CM_CONFIG_REQ_T));
 
-		ulSize = 0;
-		ulResult = event_wait(aucBuffer, &ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_CM_CONFIG_CNF_OPCODE, 10);
-//		if( ulResult!=IOLWM_RESULT_Ok )
-//		{
-//			--uiRetries;
-//			if( uiRetries==0 )
-//			{
-//				break;
-//			}
-//		}
-//	} while( ulResult!=IOLWM_RESULT_Ok );
+	uart_send(m_uBuffer.auc, sizeof(IOLWM_EHCI_COMMAND_HEADER_T)+sizeof(IOLWM_PARAM_SMI_CM_CONFIG_REQ_T)+2U);
 
+	/* Wait for an ACK packet. */
+	ulResult = event_wait(&ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_ACK_OPCODE, 10);
 	if( ulResult==IOLWM_RESULT_Ok )
 	{
-		ulValue  = (unsigned long)(aucBuffer[1]);
-		ulValue |= (unsigned long)(aucBuffer[2]<<8U);
-		if( ulValue!=0 )
+		/* Wait for the response. */
+		ulResult = event_wait(&ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_CM_CONFIG_CNF_OPCODE, 10);
+		if( ulResult==IOLWM_RESULT_Ok )
 		{
-			ulResult = IOLWM_RESULT_EhciError;
+			/* The response must have at least 3 bytes. */
+			if( ulSize<3U )
+			{
+				ulResult = IOLWM_RESULT_InvalidPacketSize;
+			}
+			else
+			{
+				/* Get the status from the event. It will be overwritten by the following ACK. */
+				uiStatus  = (unsigned int)(m_uBuffer.tEvent.uPayload.auc[1]);
+				uiStatus |= (unsigned int)(m_uBuffer.tEvent.uPayload.auc[2]<<8U);
+
+				/* Send an ACK. */
+				send_command_ack(m_uBuffer.tEvent.uHeader.t.ucMsgCounter);
+
+				/* Check the result. */
+				if( uiStatus!=0 )
+				{
+					ulResult = IOLWM_RESULT_EhciError;
+				}
+			}
 		}
 	}
 
@@ -516,49 +700,52 @@ static unsigned long smi_vs_radio_test(unsigned char ucTrack, unsigned char ucCo
 {
 	unsigned long ulResult;
 	unsigned long ulSize;
-	IOLWM_EHCI_COMMAND_PACKET_STRUCT tPacket;
-	union
-	{
-		IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T t;
-		unsigned char auc[sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T)];
-	} uData;
-	union
-	{
-		unsigned char auc[256];
-		IOLWM_PARAM_SMI_VS_WRITE_CNF_T t;
-	} uCnf;
+	unsigned short usResult;
 
 
-	uData.t.ucClientID = 0x01;
-	uData.t.ucPortNumber = 0x00;
-	uData.t.usArgBlockLength = sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T);
-	uData.t.tArgBlockData.usArgBlockID = ARG_BLK_ID_VS_RADIO_CON_TEST;
-	uData.t.tArgBlockData.ucCommand = ucCommand;
-	uData.t.tArgBlockData.ucTrack = ucTrack;
-	uData.t.tArgBlockData.ucModulation = ucModulation;
-	uData.t.tArgBlockData.ucTestPattern = ucTestPattern;
-	uData.t.tArgBlockData.ucFrequencyIndex = ucFrequencyIndex;
-	uData.t.tArgBlockData.ulGeneratorInitValue = ulDataWhitenerIv;
-	uData.t.tArgBlockData.ucTxPowerValue = ucTxPowerValue;
-	command_create(&tPacket, IOLWM_SMI_VS_WRITE_REQ_OPCODE, sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T));
+	++m_uiMsgCounter;
 
-	uart_send(&tPacket, sizeof(IOLWM_EHCI_COMMAND_HEADER_T));
-	uart_send(uData.auc, sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T));
+	command_create(&(m_uBuffer.tCommand), IOLWM_SMI_VS_WRITE_REQ_OPCODE, sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T));
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.ucClientID = 0x01;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.ucPortNumber = 0x00;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.usArgBlockLength = sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T);
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.usArgBlockID = ARG_BLK_ID_VS_RADIO_CON_TEST;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.ucCommand = ucCommand;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.ucTrack = ucTrack;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.ucModulation = ucModulation;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.ucTestPattern = ucTestPattern;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.ucFrequencyIndex = ucFrequencyIndex;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.ulGeneratorInitValue = ulDataWhitenerIv;
+	m_uBuffer.tCommand.uPayload.tSmiVsRadioTestReq.tArgBlockData.ucTxPowerValue = ucTxPowerValue;
+	generate_command_checksum(sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T));
 
-	ulSize = 0;
-	ulResult = event_wait(uCnf.auc, &ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_VS_WRITE_CNF_OPCODE, 10);
+	uart_send(m_uBuffer.auc, sizeof(IOLWM_EHCI_COMMAND_HEADER_T) + sizeof(IOLWM_PARAM_SMI_VS_RADIO_TEST_REQ_T) + 2U);
+
+	/* Wait for an ACK packet. */
+	ulResult = event_wait(&ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_ACK_OPCODE, 10);
 	if( ulResult==IOLWM_RESULT_Ok )
 	{
-		if( ulSize>=sizeof(IOLWM_PARAM_SMI_VS_WRITE_CNF_T) )
+		ulResult = event_wait(&ulSize, IOLW_EHCI_SMI_EVENT_CODE_VALUE, IOLWM_SMI_VS_WRITE_CNF_OPCODE, 10);
+		if( ulResult==IOLWM_RESULT_Ok )
 		{
-			if( uCnf.t.usResult!=0 )
+			if( ulSize<sizeof(IOLWM_PARAM_SMI_VS_WRITE_CNF_T) )
 			{
-				ulResult = IOLWM_RESULT_EhciError;
+				ulResult = IOLWM_RESULT_InvalidPacketSize;
 			}
-		}
-		else
-		{
-			ulResult = IOLWM_RESULT_InvalidPacketSize;
+			else
+			{
+				/* Save the result. It would be overwritten by the following ACK. */
+				usResult = m_uBuffer.tEvent.uPayload.tSmiVsWriteCnf.usResult;
+
+				/* Send an ACK. */
+				send_command_ack(m_uBuffer.tEvent.uHeader.t.ucMsgCounter);
+
+				/* Check the result. */
+				if( usResult!=0 )
+				{
+					ulResult = IOLWM_RESULT_EhciError;
+				}
+			}
 		}
 	}
 
@@ -569,7 +756,15 @@ static unsigned long smi_vs_radio_test(unsigned char ucTrack, unsigned char ucCo
 
 static unsigned long module_prepareRadioTest(void)
 {
-	return smi_vs_radio_test(0, IOLWM_RADIO_TEST_CMD_CON_PREPARE, 0, 0, 1, 0, 15);
+	return smi_vs_radio_test(
+		0,
+		IOLWM_RADIO_TEST_CMD_CON_PREPARE,
+		IOLWM_RADIO_TEST_CMD_MODULATION_CW,
+		IOLWM_RADIO_TEST_CMD_TESTPATTERN_PRBS9,
+		1,
+		0,
+		15
+	);
 }
 
 
@@ -593,7 +788,15 @@ static unsigned long module_radioTestContTx(unsigned long ulTrack, unsigned long
 	{
 		ucTrack = (unsigned char)ulTrack;
 		ucFrequencyIndex = (unsigned char)ulFrequencyIndex;
-		ulResult = smi_vs_radio_test(ucTrack, IOLWM_RADIO_TEST_CMD_CON_TX, 0, 0, ucFrequencyIndex, 0, 15);
+		ulResult = smi_vs_radio_test(
+			ucTrack,
+			IOLWM_RADIO_TEST_CMD_CON_TX,
+			IOLWM_RADIO_TEST_CMD_MODULATION_CW,
+			IOLWM_RADIO_TEST_CMD_TESTPATTERN_PRBS9,
+			ucFrequencyIndex,
+			0,
+			15
+		);
 	}
 
 	return ulResult;
@@ -614,7 +817,15 @@ static unsigned long module_radioTestStop(unsigned long ulTrack)
 	else
 	{
 		ucTrack = (unsigned char)ulTrack;
-		return smi_vs_radio_test(ucTrack, IOLWM_RADIO_TEST_CMD_CON_STOP, 0, 0, 1, 0, 15);
+		return smi_vs_radio_test(
+			ucTrack,
+			IOLWM_RADIO_TEST_CMD_CON_STOP,
+			IOLWM_RADIO_TEST_CMD_MODULATION_CW,
+			IOLWM_RADIO_TEST_CMD_TESTPATTERN_PRBS9,
+			1,
+			0,
+			15
+		);
 	}
 
 	return ulResult;
@@ -637,6 +848,7 @@ unsigned long module(unsigned long ulParameter0, unsigned long ulParameter1, uns
 		/* Initialize has one parameter:
 		 *   parameter 1: address of the buffer to copy the indication data to.
 		 */
+		m_uiMsgCounter = 0;
 		setup_padctrl();
 		uart_initialize();
 		uart_clean_receive_fifo();
