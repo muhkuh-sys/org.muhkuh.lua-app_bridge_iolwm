@@ -3,7 +3,6 @@ local AppBridgeModuleIolwm = class()
 
 function AppBridgeModuleIolwm:_init(tAppBridge, tLog)
   self.pl = require'pl.import_into'()
-  self.bit = require 'bit'
 
   local vstruct = require 'vstruct'
   self.vstruct = vstruct
